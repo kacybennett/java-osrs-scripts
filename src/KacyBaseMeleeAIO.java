@@ -23,8 +23,7 @@ public class KacyBaseMeleeAIO extends Script {
 
     @Override
     public void onStart() {
-        log("Let's get started!");
-
+        log("Let's get started");
     }
 
     @Override
