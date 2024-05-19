@@ -21,6 +21,9 @@ public class KacyBaseMeleeAIO extends Script {
     int picked = 0;
     final int MAX_POTATOES = 34;
 
+    //Idle Tracker
+    int idleCounter = 0, MAX_IDLE_TIMER = 200;
+
     @Override
     public void onStart() {
         log("Let's get started!");
@@ -29,17 +32,55 @@ public class KacyBaseMeleeAIO extends Script {
 
     @Override
     public int onLoop() throws InterruptedException {
+        log("Idle Counter: " + idleCounter + "of " + MAX_IDLE_TIMER);
+        idleCounter++;
+
+        // Close any dialogues (gaining levels, etc.)
+        closeDialog();
 
         return 0;
     }
 
-    private void checkBank(Player p, Area closestBank) throws InterruptedException {
+    private void pickPotatoes(Player p, Area closestBank, Area exchange) throws InterruptedException {
+        log("Logged in. Checking bank...");
 
+        // Walks to a bank from wherever the character logs in at
+        walkTo(closestBank);
+        NPC banker = npcs.closest("Banker");
+        if(banker != null) {
+            banker.interact("Bank");
+            sleep(random(1800, 3300));
+            // If the amount of potatoes in the bank is greater or equal to the max amount of potatoes wanted,
+            // the character will walk to the GE and sell the potatoes.
+            if(getBank().getItem("Potato").getAmount() >= MAX_POTATOES) {
+                getBank().close();
+                sleep(random(900, 3300));
+                walkTo(Banks.GRAND_EXCHANGE);
+                if (banker != null) {
+                    banker.interact("Bank");
+                    sleep(random(1300, 3400));
+                    bank.withdrawAll(1943);
+                    bank.close();
+                    NPC clerk = npcs.closest("Grand Exchange Clerk");
+                    if (clerk != null && clerk.isVisible()) {
+                        if (!getGrandExchange().isOpen()) {
+                            clerk.interact("Exchange");
+                        } else {
+                            getGrandExchange().sellItem(1943, 10, 1);
+                            sleep(random(4500, 7000));
+                            getGrandExchange().collect();
+                            sleep(random(2000, 3200));
+                            getGrandExchange().close();
+                            log("Potatoes sold!");
+                        }
+                    } else {
+                        log("Clerk not found.");
+                    }
+                }
+            }
+        }
     }
 
-    private void pickPotatoes(Player p, Position position, Area field) throws InterruptedException {
-
-    }
 
     private void bankPotatoes(Player p) throws InterruptedException {
 
@@ -89,6 +130,15 @@ public class KacyBaseMeleeAIO extends Script {
 
     public boolean doorIsClosed(RS2Object door) {
         return Arrays.asList(door.getDefinition().getActions()).contains("Open");
+    }
+
+    public void closeDialog() {
+        log("Closing Dialog...");
+
+        if(getWidgets().getWidgetContainingText("Click here to continue") != null) {
+            getKeyboard().typeKey(' ');
+        }
+        idleCounter++;
     }
 
     @Override
